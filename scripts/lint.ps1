@@ -44,7 +44,8 @@ if($psFiles){
     }
     if($r){
       $r | Format-Table -AutoSize | Out-Host
-      if(($r | Where-Object { $_.Severity -eq 'Error' }).Count -gt 0){ $failed += 'psscriptanalyzer' }
+      $errors = @($r | Where-Object { $_.Severity -eq 'Error' })
+      if($errors.Count -gt 0){ $failed += 'psscriptanalyzer' }
     }
   } elseif(-not $NoInstall){
     try{ Install-Module -Scope CurrentUser -Force PSScriptAnalyzer -ErrorAction Stop; Import-Module PSScriptAnalyzer -ErrorAction Stop }
@@ -111,3 +112,6 @@ if((Test-Path 'pyproject.toml') -or (Get-ChildItem -Recurse -Filter requirements
 }
 
 if($failed.Count -gt 0){ Write-Error ("Lint 失敗：{0}" -f ($failed -join ', ')) } else { Write-Host 'Lint 全部通過或略過。' -ForegroundColor Green }
+
+
+
