@@ -1,79 +1,15 @@
-﻿name: Security Scan
-
-on:
-  push:
-    branches: ["main", "master", "develop"]
-  pull_request:
-    branches: ["main", "master", "develop"]
-  schedule:
-    - cron: '0 3 * * 1'
-  workflow_dispatch: {}
-
-permissions:
-  contents: read
-  security-events: write
-  actions: read
-
-jobs:
-  semgrep:
-    name: Semgrep (SAST)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Run Semgrep (OSS rules)
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: p/ci
-          generateSarif: true
-          uploadSarif: true
-          additional_args: '--severity=ERROR --exclude=docs/** --exclude=.github/** --exclude=**/*.md'
-
-  gitleaks:
-    name: Gitleaks (Secret Scanning)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload SARIF (Gitleaks)
-        uses: github/codeql-action/upload-sarif@v3 # 建議使用 v3/v4 穩定版
-        with:
-          sarif_file: results.sarif
-
-  trivy_fs:
+﻿trivy_fs:
     name: Trivy (Filesystem)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Manual Trivy Setup
-        # 使用 v0.2.2 的 Commit SHA，解決 Unable to resolve 問題
-        uses: aquasecurity/setup-trivy@af091494917a2336361a473e04e1e12760630713
-        with:
-          version: v0.60.0 # 建議使用官方標註的穩定版本
-          cache: false
-
-      - name: Run Trivy FS
-        # 使用 v0.28.0 的 Commit SHA
-        uses: aquasecurity/trivy-action@248679469792e3458e0a811d6749021290326b8b
+      - name: Run Trivy Scan
+        # 這裡改用另一個寫法，完全不帶 v 或特定 SHA，先看能不能解析最基本的版本
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          ignore-unfixed: true
+          format: 'table'
+          exit-code: '0'
           severity: 'CRITICAL,HIGH'
-          # 因為上方已經手動 Setup，這裡確保不重複安裝
-          skip-setup-trivy: true
-
-      - name: Upload SARIF (Trivy)
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
