@@ -1,4 +1,4 @@
-name: Security Scan
+﻿name: Security Scan
 
 on:
   push:
@@ -46,8 +46,7 @@ jobs:
       - name: Upload SARIF (Gitleaks)
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: gitleaks.sarif
-
+          sarif_file: results.sarif
   trivy_fs:
     name: Trivy (Filesystem)
     runs-on: ubuntu-latest
@@ -68,3 +67,4 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
+
