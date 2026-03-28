@@ -1,32 +1,80 @@
-﻿trivy_fs:
-    name: Trivy (Filesystem)
+﻿name: Security Scan
+
+on:
+  push:
+    branches: ["main", "master", "develop"]
+  pull_request:
+    branches: ["main", "master", "develop"]
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  semgrep:
+    name: Semgrep (SAST)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      # 步驟 1: 手動安裝 Trivy (避免 uses: aquasecurity 失敗)
-      - name: Install Trivy Binary
-        run: |
-          sudo apt-get install wget apt-transport-https gnupg lsb-release -y
-          wget -qO - https://aquasecurity.github.io/trivy-repo/pubkey.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install trivy -y
-
-      # 步驟 2: 執行掃描並產出 SARIF 檔 (供 GitHub Code Scanning 使用)
-      - name: Run Trivy FS Scan
-        run: |
-          trivy fs \
-            --format sarif \
-            --output trivy-results.sarif \
-            --severity CRITICAL,HIGH \
-            --ignore-unfixed \
-            .
-
-      # 步驟 3: 上傳結果到 GitHub Security 頁面
-      - name: Upload SARIF (Trivy)
-        uses: github/codeql-action/upload-sarif@v3
-        if: always() # 確保掃描完一定會執行上傳
+      - name: Run Semgrep (OSS rules)
+        uses: semgrep/semgrep-action@v1
         with:
-          sarif_file: trivy-results.sarif
+          config: p/ci
+          generateSarif: true
+          uploadSarif: true
+          additional_args: '--severity=ERROR --exclude=docs/** --exclude=.github/** --exclude=**/*.md'
+
+  gitleaks:
+    name: Gitleaks (Secret Scanning)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload SARIF (Gitleaks)
+        uses: github/codeql-action/upload-sarif@v3 # 建議使用 v3/v4 穩定版
+        with:
+          sarif_file: results.sarif
+
+  trivy_fs:
+      name: Trivy (Filesystem)
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        # 步驟 1: 手動安裝 Trivy (避免 uses: aquasecurity 失敗)
+        - name: Install Trivy Binary
+          run: |
+            sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+            wget -qO - https://aquasecurity.github.io/trivy-repo/pubkey.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+            echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            sudo apt-get install trivy -y
+
+        # 步驟 2: 執行掃描並產出 SARIF 檔 (供 GitHub Code Scanning 使用)
+        - name: Run Trivy FS Scan
+          run: |
+            trivy fs \
+              --format sarif \
+              --output trivy-results.sarif \
+              --severity CRITICAL,HIGH \
+              --ignore-unfixed \
+              .
+
+        # 步驟 3: 上傳結果到 GitHub Security 頁面
+        - name: Upload SARIF (Trivy)
+          uses: github/codeql-action/upload-sarif@v3
+          if: always() # 確保掃描完一定會執行上傳
+          with:
+            sarif_file: trivy-results.sarif
