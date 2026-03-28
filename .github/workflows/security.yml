@@ -44,7 +44,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload SARIF (Gitleaks)
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
   trivy_fs:
@@ -58,13 +58,15 @@ jobs:
       - name: Run Trivy FS
         uses: aquasecurity/trivy-action@v0.33.1
         with:
-          scan-type: fs
+
+          scan-ref: '.'
           format: sarif
           output: trivy-results.sarif
           ignore-unfixed: true
           severity: CRITICAL,HIGH
       - name: Upload SARIF (Trivy)
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
+
 
