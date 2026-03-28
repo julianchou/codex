@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
 
       - name: Set up Python (if requirements/pyproject)
         if: hashFiles('**/requirements*.txt') != '' || hashFiles('**/pyproject.toml') != ''
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
