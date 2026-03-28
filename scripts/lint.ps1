@@ -36,7 +36,12 @@ Write-Section 'PowerShell 腳本分析（PSScriptAnalyzer 若可用）'
 $psFiles = Get-ChildItem -Recurse -File -Include *.ps1,*.psm1 -ErrorAction SilentlyContinue
 if($psFiles){
   if(Get-Module -ListAvailable -Name PSScriptAnalyzer){
-    $r = Invoke-ScriptAnalyzer -Path $psFiles.FullName -Recurse -Severity Warning,Error -ErrorAction SilentlyContinue
+    $paths = $psFiles | ForEach-Object { $_.FullName }
+    $r = @()
+    foreach($p in $paths){
+      try{ $r += Invoke-ScriptAnalyzer -Path $p -Severity Warning,Error -ErrorAction SilentlyContinue }
+      catch{ Write-Warning "PSScriptAnalyzer 執行於 $p 失敗：$($_.Exception.Message)"; $failed += 'psscriptanalyzer' }
+    }
     if($r){
       $r | Format-Table -AutoSize | Out-Host
       if(($r | Where-Object { $_.Severity -eq 'Error' }).Count -gt 0){ $failed += 'psscriptanalyzer' }
@@ -106,4 +111,3 @@ if((Test-Path 'pyproject.toml') -or (Get-ChildItem -Recurse -Filter requirements
 }
 
 if($failed.Count -gt 0){ Write-Error ("Lint 失敗：{0}" -f ($failed -join ', ')) } else { Write-Host 'Lint 全部通過或略過。' -ForegroundColor Green }
-
