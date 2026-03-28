@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
       # 收斂：僅保留最常見的語言環境，其他由腳本偵測且以 -NoInstall 避免安裝
       - name: Set up Node.js (if package.json)
         if: hashFiles('**/package.json') != ''
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
