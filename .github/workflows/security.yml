@@ -1,4 +1,4 @@
-﻿name: Security Scan
+name: Security Scan
 
 on:
   push:
@@ -50,7 +50,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Run Trivy FS
-        uses: aquasecurity/trivy-action@0.17.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: fs
           format: sarif
