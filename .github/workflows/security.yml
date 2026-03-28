@@ -53,6 +53,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Manual Trivy Setup
+        uses: aquasecurity/setup-trivy@v0.2.0
+        with:
+          version: v0.69.3
+          cache: false
+
       - name: Run Trivy FS
         uses: aquasecurity/trivy-action@0.33.1
         with:
@@ -62,14 +68,12 @@ jobs:
           output: 'trivy-results.sarif'
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
-          version: 'v0.68.2'
-          cache: 'false'
+          skip-setup-trivy: true
 
       - name: Upload SARIF (Trivy)
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
-
 
 
 
