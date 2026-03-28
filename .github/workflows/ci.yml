@@ -1,0 +1,90 @@
+﻿name: CI
+
+on:
+  push:
+    branches: ["main", "master", "develop", "feature/**", "fix/**"]
+  pull_request:
+    branches: ["main", "master", "develop"]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+jobs:
+  lint_and_test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 可選語言環境（條件式，免費優先）
+      - name: Set up Node.js (if package.json)
+        if: hashFiles('**/package.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python (if requirements/pyproject)
+        if: hashFiles('**/requirements*.txt') != '' || hashFiles('**/pyproject.toml') != ''
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up .NET (if sln/csproj)
+        if: hashFiles('**/*.sln') != '' || hashFiles('**/*.csproj') != ''
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Set up Go (if go.mod)
+        if: hashFiles('**/go.mod') != ''
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Set up Rust (if Cargo.toml)
+        if: hashFiles('**/Cargo.toml') != ''
+        uses: dtolnay/rust-toolchain@stable
+
+      # 注意：如需使用 secrets，請在此以 placeholder 示意並於 Repo 設定中加入
+      # env:
+      #   MY_SERVICE_TOKEN: ${{ secrets.MY_SERVICE_TOKEN }}
+
+      - name: Run lint (PowerShell)
+        shell: pwsh
+        run: ./scripts/lint.ps1
+
+      - name: Run tests (PowerShell)
+        shell: pwsh
+        run: ./scripts/test.ps1
+
+      - name: Upload test results (if any)
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            artifacts/test-results/**
+            artifacts/junit/**
+            artifacts/reports/**
+          if-no-files-found: ignore
+
+      - name: Upload coverage (if any)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            artifacts/coverage/**
+          if-no-files-found: ignore
+
+      - name: Job summary
+        shell: pwsh
+        run: |
+          Add-Content $env:GITHUB_STEP_SUMMARY "# CI 結果"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Lint 與 Test 已執行（詳見上傳之產物）。"
