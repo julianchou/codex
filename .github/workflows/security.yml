@@ -28,6 +28,7 @@ jobs:
           generateSarif: true
           uploadSarif: true
           additional_args: '--severity=ERROR --exclude=docs/** --exclude=.github/** --exclude=**/*.md'
+
   gitleaks:
     name: Gitleaks (Secret Scanning)
     runs-on: ubuntu-latest
@@ -41,26 +42,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload SARIF (Gitleaks)
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v3 # 建議使用 v3/v4 穩定版
         with:
           sarif_file: results.sarif
+
   trivy_fs:
     name: Trivy (Filesystem)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Manual Trivy Setup
-        uses: aquasecurity/setup-trivy@v0.2.2
+        # 使用 v0.2.2 的 Commit SHA，解決 Unable to resolve 問題
+        uses: aquasecurity/setup-trivy@af091494917a2336361a473e04e1e12760630713
         with:
-          version: v0.69.3
+          version: v0.60.0 # 建議使用官方標註的穩定版本
           cache: false
 
       - name: Run Trivy FS
-        uses: aquasecurity/trivy-action@0.28.0
+        # 使用 v0.28.0 的 Commit SHA
+        uses: aquasecurity/trivy-action@248679469792e3458e0a811d6749021290326b8b
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -68,14 +70,10 @@ jobs:
           output: 'trivy-results.sarif'
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
+          # 因為上方已經手動 Setup，這裡確保不重複安裝
           skip-setup-trivy: true
 
       - name: Upload SARIF (Trivy)
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
-
-
-
-
-
