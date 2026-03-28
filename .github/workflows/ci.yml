@@ -24,7 +24,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 可選語言環境（條件式，免費優先）
+      # 收斂：僅保留最常見的語言環境，其他由腳本偵測且以 -NoInstall 避免安裝
       - name: Set up Node.js (if package.json)
         if: hashFiles('**/package.json') != ''
         uses: actions/setup-node@v4
@@ -37,33 +37,17 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Set up .NET (if sln/csproj)
-        if: hashFiles('**/*.sln') != '' || hashFiles('**/*.csproj') != ''
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Set up Go (if go.mod)
-        if: hashFiles('**/go.mod') != ''
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22.x'
-
-      - name: Set up Rust (if Cargo.toml)
-        if: hashFiles('**/Cargo.toml') != ''
-        uses: dtolnay/rust-toolchain@stable
-
       # 注意：如需使用 secrets，請在此以 placeholder 示意並於 Repo 設定中加入
       # env:
       #   MY_SERVICE_TOKEN: ${{ secrets.MY_SERVICE_TOKEN }}
 
-      - name: Run lint (PowerShell)
+      - name: Run lint (PowerShell, -NoInstall)
         shell: pwsh
-        run: ./scripts/lint.ps1
+        run: ./scripts/lint.ps1 -NoInstall
 
-      - name: Run tests (PowerShell)
+      - name: Run tests (PowerShell, -NoInstall)
         shell: pwsh
-        run: ./scripts/test.ps1
+        run: ./scripts/test.ps1 -NoInstall
 
       - name: Upload test results (if any)
         uses: actions/upload-artifact@v4
@@ -86,5 +70,6 @@ jobs:
       - name: Job summary
         shell: pwsh
         run: |
-          Add-Content $env:GITHUB_STEP_SUMMARY "# CI 結果"
-          Add-Content $env:GITHUB_STEP_SUMMARY "- Lint 與 Test 已執行（詳見上傳之產物）。"
+          Add-Content $env:GITHUB_STEP_SUMMARY "# CI 結果（收斂版）"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- 使用 -NoInstall 模式執行 Lint/Test。"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Node/Python 以條件式 setup，其餘語言由腳本偵測。"

@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: ["main", "master", "develop"]
   schedule:
-    - cron: '0 3 * * 1'  # 每週一 03:00 UTC
+    - cron: '0 3 * * 1'
   workflow_dispatch: {}
 
 permissions:
@@ -35,35 +35,39 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
-        with:
-          args: detect --source . --no-git -v --redact -f sarif -r gitleaks.sarif
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload SARIF (Gitleaks)
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v3 # 建議使用 v3/v4 穩定版
         with:
-          sarif_file: gitleaks.sarif
-
+          sarif_file: results.sarif
   trivy_fs:
-    name: Trivy (Filesystem)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Run Trivy FS
-        uses: aquasecurity/trivy-action@v0
-        with:
-          scan-type: fs
-          format: sarif
-          output: trivy-results.sarif
-          ignore-unfixed: true
-          severity: CRITICAL,HIGH
-      - name: Upload SARIF (Trivy)
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
+      name: Trivy (Filesystem)
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
 
+        # 改用直接下載 Binary 的方式，避開 GPG/APT 報錯
+        - name: Install Trivy
+          run: |
+            VERSION="0.69.3"
+            echo "Installing Trivy v${VERSION}..."
+            wget https://github.com/aquasecurity/trivy/releases/download/v${VERSION}/trivy_${VERSION}_Linux-64bit.tar.gz
+            tar zxvf trivy_${VERSION}_Linux-64bit.tar.gz
+            sudo mv trivy /usr/local/bin/
 
+        - name: Run Trivy Scan
+          run: |
+            trivy fs --format sarif --output trivy-results.sarif --severity CRITICAL,HIGH --ignore-unfixed .
 
+        - name: Upload SARIF
+          # 順便幫你升級到 v4，解決你看到的 Deprecation Warning
+          uses: github/codeql-action/upload-sarif@v4
+          if: always()
+          with:
+            sarif_file: trivy-results.sarif
