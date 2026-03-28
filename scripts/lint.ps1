@@ -69,6 +69,8 @@ if(Test-Path 'package.json'){
         'yarn' { Try-Run yarn 'run -s lint' }
         default { Try-Run npm 'run -s lint' }
       }
+    } elseif($NoInstall) {
+      Write-Host '已啟用 -NoInstall：略過 npx eslint fallback。'
     } elseif(Has-Cmd 'npx'){
       try{ Try-Run npx '-y --yes eslint . --max-warnings=0' } catch{ Write-Warning 'eslint 不可用或未設定，略過。' }
     } else { Write-Host '無可用 Lint 指令，略過。' }
@@ -104,3 +106,5 @@ if((Test-Path 'pyproject.toml') -or (Get-ChildItem -Recurse -Filter requirements
 }
 
 if($failed.Count -gt 0){ Write-Error ("Lint 失敗：{0}" -f ($failed -join ', ')) } else { Write-Host 'Lint 全部通過或略過。' -ForegroundColor Green }
+
+
