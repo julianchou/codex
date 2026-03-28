@@ -45,7 +45,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3 # 建議使用 v3/v4 穩定版
         with:
           sarif_file: results.sarif
-
   trivy_fs:
       name: Trivy (Filesystem)
       runs-on: ubuntu-latest
