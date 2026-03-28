@@ -1,4 +1,4 @@
-﻿name: Security Scan
+name: Security Scan
 
 on:
   push:
@@ -44,7 +44,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload SARIF (Gitleaks)
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
   trivy_fs:
@@ -64,7 +64,7 @@ jobs:
           ignore-unfixed: true
           severity: CRITICAL,HIGH
       - name: Upload SARIF (Trivy)
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
 
