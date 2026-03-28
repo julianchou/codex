@@ -54,13 +54,13 @@ jobs:
           fetch-depth: 0
 
       - name: Manual Trivy Setup
-        uses: aquasecurity/setup-trivy@v0.2.0
+        uses: aquasecurity/setup-trivy@v0.2.2
         with:
           version: v0.69.3
           cache: false
 
       - name: Run Trivy FS
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
