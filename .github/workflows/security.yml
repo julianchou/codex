@@ -52,28 +52,22 @@ jobs:
         - name: Checkout code
           uses: actions/checkout@v4
 
-        # 步驟 1: 手動安裝 Trivy (避免 uses: aquasecurity 失敗)
-        - name: Install Trivy Binary
+        # 改用直接下載 Binary 的方式，避開 GPG/APT 報錯
+        - name: Install Trivy
           run: |
-            sudo apt-get install wget apt-transport-https gnupg lsb-release -y
-            wget -qO - https://aquasecurity.github.io/trivy-repo/pubkey.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-            echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-            sudo apt-get update
-            sudo apt-get install trivy -y
+            VERSION=$(curl -s https://api.github.com/repos/aquasecurity/trivy/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+            echo "Installing Trivy v${VERSION}..."
+            wget https://github.com/aquasecurity/trivy/releases/download/v${VERSION}/trivy_${VERSION}_Linux-64bit.tar.gz
+            tar zxvf trivy_${VERSION}_Linux-64bit.tar.gz
+            sudo mv trivy /usr/local/bin/
 
-        # 步驟 2: 執行掃描並產出 SARIF 檔 (供 GitHub Code Scanning 使用)
-        - name: Run Trivy FS Scan
+        - name: Run Trivy Scan
           run: |
-            trivy fs \
-              --format sarif \
-              --output trivy-results.sarif \
-              --severity CRITICAL,HIGH \
-              --ignore-unfixed \
-              .
+            trivy fs --format sarif --output trivy-results.sarif --severity CRITICAL,HIGH --ignore-unfixed .
 
-        # 步驟 3: 上傳結果到 GitHub Security 頁面
-        - name: Upload SARIF (Trivy)
-          uses: github/codeql-action/upload-sarif@v3
-          if: always() # 確保掃描完一定會執行上傳
+        - name: Upload SARIF
+          # 順便幫你升級到 v4，解決你看到的 Deprecation Warning
+          uses: github/codeql-action/upload-sarif@v4
+          if: always()
           with:
             sarif_file: trivy-results.sarif
